@@ -4,13 +4,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"gitlab-request/handler"
+
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
 	Port          string
-	GitlabToken   string 
-	WebhookSecret string 
+	GitlabToken   string
+	WebhookSecret string
 	GitlabBaseURL string
 }
 
@@ -27,7 +30,14 @@ func main() {
 
 	log.Println("Configuration loaded.")
 
-	http.HandleFunc("/webhook", handleWebhook(cfg))
+	// Convert main.Config to handler.Config
+	webhookCfg := handler.Config{
+		GitlabToken:   cfg.GitlabToken,
+		WebhookSecret: cfg.WebhookSecret,
+		GitlabBaseURL: cfg.GitlabBaseURL,
+	}
+
+	http.HandleFunc("/webhook", handler.HandleWebhook(webhookCfg))
 
 	listenAddr := ":" + cfg.Port
 	log.Printf("INFO: Starting server on %s\n", listenAddr)
@@ -43,6 +53,9 @@ func loadConfig() Config {
 		port = "8080" // Default port
 	}
 	baseURL := os.Getenv("GITLAB_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://gitlab.com" // Default GitLab URL
+	}
 
 	return Config{
 		Port:          port,
